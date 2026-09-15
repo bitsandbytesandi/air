@@ -31,7 +31,7 @@ class ChatService:
             messages,
         )
 
-    def generate_reply(self, model, tokenizer, max_tokens=1280) -> str:
+    def generate_reply(self, model, tokenizer, max_tokens=None) -> str:
         prompt = self.build_prompt(tokenizer)
 
         response = generate_response(
@@ -53,7 +53,7 @@ class ChatService:
         content: str,
         model,
         tokenizer,
-        max_tokens=1280,
+        max_tokens=None,
     ) -> str:
         self.receive_message(content)
 

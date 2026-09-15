@@ -51,7 +51,7 @@ class ApplicationService:
 
         self._state = ApplicationState.STOPPED
 
-    def chat(self, content: str, max_tokens=128) -> ChatResult:
+    def chat(self, content: str, max_tokens=None) -> ChatResult:
         if self._state != ApplicationState.RUNNING:
             raise ApplicationError(
                 "Application is not running."

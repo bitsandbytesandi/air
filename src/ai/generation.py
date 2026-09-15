@@ -1,6 +1,13 @@
 from mlx_lm import generate
 
-def generate_response(model, tokenizer, prompt, max_tokens=1024):
+DEFAULT_MAX_TOKENS = 1024
+
+def generate_response(
+    model, 
+    tokenizer, 
+    prompt, 
+    max_tokens=DEFAULT_MAX_TOKENS,
+) -> str:
     response = generate(
         model,
         tokenizer,
