@@ -1,9 +1,17 @@
+from collections.abc import Iterator
+
 from core.errors import ApplicationError
+
 from chat.context import ConversationContext
 from chat.conversation import Conversation
 from chat.service import ConversationService
+
 from ai.prompting import build_conversation_prompt
-from ai.generation import generate_response
+from ai.generation import (
+    generate_response,
+    stream_response,
+)
+
 
 class ChatService:
     def __init__(
@@ -32,7 +40,12 @@ class ChatService:
             messages,
         )
 
-    def generate_reply(self, model, tokenizer, max_tokens=None) -> str:
+    def generate_reply(
+        self,
+        model,
+        tokenizer,
+        max_tokens=None,
+    ) -> str:
         prompt = self.build_prompt(tokenizer)
 
         response = generate_response(
@@ -62,13 +75,47 @@ class ChatService:
         max_tokens=None,
     ) -> str:
         self.receive_message(content)
-    
+
         return self.generate_reply(
             model,
             tokenizer,
             max_tokens=max_tokens,
         )
-          
+
+    def stream_chat(
+        self,
+        content: str,
+        model,
+        tokenizer,
+        max_tokens=None,
+    ) -> Iterator[str]:
+        self.receive_message(content)
+
+        prompt = self.build_prompt(tokenizer)
+
+        chunks: list[str] = []
+
+        for chunk in stream_response(
+            model,
+            tokenizer,
+            prompt,
+            max_tokens=max_tokens,
+        ):
+            chunks.append(chunk)
+            yield chunk
+
+        response = "".join(chunks).strip()
+
+        if not response:
+            raise ApplicationError(
+                "AI returned an empty response."
+            )
+
+        self.conversation_service.add_message(
+            role="assistant",
+            content=response,
+        )
+
     def restore(self) -> None:
         restored = self.conversation_service.load()
 
@@ -79,4 +126,3 @@ class ChatService:
 
     def get_messages(self):
         return self.conversation_service.get_messages()
-

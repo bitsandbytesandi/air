@@ -1,3 +1,6 @@
+
+from collections.abc import Iterator
+
 from core.context import ApplicationContext
 from core.errors import ApplicationError, InvalidMessageError
 from core.results import ChatResult
@@ -51,7 +54,7 @@ class ApplicationService:
 
         self._state = ApplicationState.STOPPED
 
-    def chat(self, content: str, max_tokens=None) -> ChatResult:
+    def _validate_chat(self, content: str) -> str:
         if self._state != ApplicationState.RUNNING:
             raise ApplicationError(
                 "Application is not running."
@@ -64,6 +67,15 @@ class ApplicationService:
                 "Message cannot be empty."
             )
 
+        return content
+
+    def chat(
+        self,
+        content: str,
+        max_tokens: int | None = None,
+    ) -> ChatResult:
+        content = self._validate_chat(content)
+
         response = self.context.chat_service.chat(
             content,
             self.context.model,
@@ -72,6 +84,20 @@ class ApplicationService:
         )
 
         return ChatResult(content=response)
+
+    def stream_chat(
+        self,
+        content: str,
+        max_tokens: int | None = None,
+    ) -> Iterator[str]:
+        content = self._validate_chat(content)
+
+        yield from self.context.chat_service.stream_chat(
+            content,
+            self.context.model,
+            self.context.tokenizer,
+            max_tokens=max_tokens,
+        )
 
     def get_messages(self):
         return self.context.chat_service.get_messages()
