@@ -11,6 +11,9 @@ class ConversationContext:
     def prepare(self, messages: list[Message]) -> list[dict[str, str]]:
         selected_messages = messages[-self.max_messages:]
 
+        if selected_messages and selected_messages[0].role == "assistant":
+            selected_messages = selected_messages[1:]
+
         return [
             {
                 "role": message.role,

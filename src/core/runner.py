@@ -7,13 +7,17 @@ def run() -> None:
 
     print("AIR is ready. Type 'exit' to quit.\n")
 
-    while True:
-        content = input("You: ")
+    try:
+        while True:
+            content = input("You: ")
 
-        if content.lower() == "exit":
-            print("Goodbye.")
-            break
+            if content.lower() == "exit":
+                print("Goodbye.")
+                break
 
-        response = application.chat(content)
+            response = application.chat(content)
 
-        print(f"AIR: {response.content}\n")
+            print(f"AIR: {response.content}\n")
+
+    finally:
+        application.shutdown()

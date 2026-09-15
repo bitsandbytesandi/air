@@ -47,6 +47,8 @@ class ApplicationService:
 
         self._state = ApplicationState.STOPPING
 
+        self.context.session.close()
+
         self._state = ApplicationState.STOPPED
 
     def chat(self, content: str, max_tokens=128) -> ChatResult:
