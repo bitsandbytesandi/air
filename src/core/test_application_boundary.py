@@ -3,6 +3,7 @@ from datetime import datetime
 from core.application import ApplicationService
 from core.errors import InvalidMessageError
 from core.results import ChatResult
+from core.context import ApplicationContext
 
 class FakeMessage:
     def __init__(self, role: str, content: str):
@@ -31,11 +32,16 @@ class FakeChatService:
 
 fake_chat_service = FakeChatService()
 
-application = ApplicationService(
+context = ApplicationContext(
     chat_service=fake_chat_service,
     model=None,
     tokenizer=None,
 )
+
+application = ApplicationService(
+    context,
+)
+
 application.start()
 application.start()
 

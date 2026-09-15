@@ -6,6 +6,7 @@ from core.application import ApplicationService
 from core.config import CONVERSATION_FILE
 from storage.conversation_repository import ConversationRepository
 from storage.json_repository import JsonRepository
+from core.context import ApplicationContext
 
 def create_application() -> ApplicationService:
     model, tokenizer = load_model()
@@ -28,10 +29,14 @@ def create_application() -> ApplicationService:
         conversation_service,
     )
 
+    context = ApplicationContext(
+        chat_service=chat_service,
+        model=model,
+        tokenizer=tokenizer,
+    )
+
     application = ApplicationService(
-        chat_service,
-        model,
-        tokenizer,
+        context,
     )
 
     return application

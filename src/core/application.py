@@ -1,4 +1,4 @@
-from chat.chat_service import ChatService
+from core.context import ApplicationContext
 from core.errors import ApplicationError, InvalidMessageError
 from core.results import ChatResult
 from core.state import ApplicationState
@@ -7,13 +7,9 @@ from core.state import ApplicationState
 class ApplicationService:
     def __init__(
         self,
-        chat_service: ChatService,
-        model,
-        tokenizer,
+        context: ApplicationContext,
     ):
-        self.chat_service = chat_service
-        self.model = model
-        self.tokenizer = tokenizer
+        self.context = context
         self._state = ApplicationState.CREATED
 
     @property
@@ -62,20 +58,20 @@ class ApplicationService:
                 "Message cannot be empty."
             )
 
-        response = self.chat_service.chat(
+        response = self.context.chat_service.chat(
             content,
-            self.model,
-            self.tokenizer,
+            self.context.model,
+            self.context.tokenizer,
             max_tokens=max_tokens,
         )
 
         return ChatResult(content=response)
 
     def get_messages(self):
-        return self.chat_service.get_messages()
+        return self.context.chat_service.get_messages()
 
     def get_conversation(self) -> list[dict[str, str]]:
-        messages = self.chat_service.get_messages()
+        messages = self.context.chat_service.get_messages()
 
         return [
             {
@@ -87,4 +83,4 @@ class ApplicationService:
         ]
 
     def restore(self) -> None:
-        self.chat_service.restore()
+        self.context.chat_service.restore()
