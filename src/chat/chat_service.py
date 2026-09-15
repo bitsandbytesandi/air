@@ -1,3 +1,4 @@
+from core.errors import ApplicationError
 from chat.context import ConversationContext
 from chat.conversation import Conversation
 from chat.service import ConversationService
@@ -40,7 +41,12 @@ class ChatService:
             prompt,
             max_tokens=max_tokens,
         )
-        
+
+        if not response:
+            raise ApplicationError(
+                "AI returned an empty response."
+            )
+
         self.conversation_service.add_message(
             role="assistant",
             content=response,
@@ -56,13 +62,13 @@ class ChatService:
         max_tokens=None,
     ) -> str:
         self.receive_message(content)
-
+    
         return self.generate_reply(
             model,
             tokenizer,
             max_tokens=max_tokens,
         )
-
+          
     def restore(self) -> None:
         restored = self.conversation_service.load()
 
