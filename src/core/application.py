@@ -16,6 +16,10 @@ class ApplicationService:
     def state(self) -> ApplicationState:
         return self._state
 
+    @property
+    def session(self):
+        return self.context.session
+
     def start(self) -> None:
         if self._state == ApplicationState.RUNNING:
             return

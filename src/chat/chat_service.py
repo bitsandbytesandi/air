@@ -1,3 +1,4 @@
+from chat.context import ConversationContext
 from chat.conversation import Conversation
 from chat.service import ConversationService
 from ai.prompting import build_conversation_prompt
@@ -8,9 +9,11 @@ class ChatService:
         self,
         conversation: Conversation,
         conversation_service: ConversationService,
+        context: ConversationContext,
     ):
         self.conversation = conversation
         self.conversation_service = conversation_service
+        self.context = context
 
     def receive_message(self, content: str) -> None:
         self.conversation_service.add_message(
@@ -19,9 +22,13 @@ class ChatService:
         )
 
     def build_prompt(self, tokenizer) -> str:
+        messages = self.context.prepare(
+            self.conversation.messages
+        )
+
         return build_conversation_prompt(
             tokenizer,
-            self.conversation.to_chat_messages(),
+            messages,
         )
 
     def generate_reply(self, model, tokenizer, max_tokens=1280) -> str:
