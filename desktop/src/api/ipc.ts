@@ -19,6 +19,23 @@ export interface ChatResponse {
   content: string;
 }
 
+export interface ModelInfo {
+  name: string;
+  path: string;
+  loaded: boolean;
+}
+
+export interface RuntimeConfig {
+  max_tokens: number;
+}
+
+export interface RuntimeResponse {
+  status: string;
+  application: string;
+  model: ModelInfo;
+  config: RuntimeConfig;
+}
+
 export async function airHealth(): Promise<HealthResponse> {
   return invoke<HealthResponse>("air_health");
 }
@@ -35,4 +52,8 @@ export async function airChat(
     content,
     max_tokens: maxTokens,
   });
+}
+
+export async function airRuntime(): Promise<RuntimeResponse> {
+  return invoke<RuntimeResponse>("air_runtime");
 }

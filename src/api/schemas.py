@@ -6,7 +6,6 @@ class ChatRequest(BaseModel):
         min_length=1,
         max_length=20_000,
     )
-
     max_tokens: int | None = Field(
         default=None,
         ge=1,
@@ -31,6 +30,23 @@ class ConversationResponse(BaseModel):
 class HealthResponse(BaseModel):
     status: str
     application: str
+
+
+class ModelInfoResponse(BaseModel):
+    name: str
+    path: str
+    loaded: bool
+
+
+class RuntimeConfigResponse(BaseModel):
+    max_tokens: int
+
+
+class RuntimeResponse(BaseModel):
+    status: str
+    application: str
+    model: ModelInfoResponse
+    config: RuntimeConfigResponse
 
 
 class StreamChunk(BaseModel):

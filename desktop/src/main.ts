@@ -3,6 +3,7 @@ import "./styles.css";
 import {
   airConversation,
   airHealth,
+  airRuntime,
   type ConversationMessage,
 } from "./api/ipc";
 

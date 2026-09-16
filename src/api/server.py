@@ -13,6 +13,9 @@ from api.schemas import (
     ChatResponse,
     ConversationResponse,
     HealthResponse,
+    ModelInfoResponse,
+    RuntimeConfigResponse,
+    RuntimeResponse,
 )
 
 from core.application import ApplicationService
@@ -102,6 +105,29 @@ app.add_middleware(
     "/v1/health",
     response_model=HealthResponse,
 )
+@app.get(
+    "/v1/runtime",
+    response_model=RuntimeResponse,
+)
+def runtime(
+    _: None = Depends(require_api_token),
+    service: ApplicationService = Depends(get_application),
+):
+    model = service.context.model_manager.info
+
+    return RuntimeResponse(
+        status="ok",
+        application=service.state.value,
+        model=ModelInfoResponse(
+            name=model.name,
+            path=model.path,
+            loaded=model.loaded,
+        ),
+        config=RuntimeConfigResponse(
+            max_tokens=service.context.runtime.max_tokens,
+        ),
+    )
+
 def health(
     _: None = Depends(require_api_token),
     service: ApplicationService = Depends(get_application),

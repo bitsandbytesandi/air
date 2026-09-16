@@ -32,6 +32,54 @@ struct ChatRequest {
 struct ChatResponse {
     content: String,
 }
+#[derive(Debug, Serialize, Deserialize)]
+struct ModelInfo {
+    name: String,
+    path: String,
+    loaded: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct RuntimeConfig {
+    max_tokens: u32,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct RuntimeResponse {
+    status: String,
+    application: String,
+    model: ModelInfo,
+    config: RuntimeConfig,
+}
+#[tauri::command]
+async fn air_runtime() -> Result<RuntimeResponse, String> {
+    let client = air_client()?;
+
+    let response = air_request(
+        client.get(format!("{AIR_API_URL}/v1/runtime"))
+    )
+    .send()
+    .await
+    .map_err(|error| {
+        format!("AIR runtime request failed: {error}")
+    })?;
+
+    if !response.status().is_success() {
+        return Err(format!(
+            "AIR runtime request failed with status: {}",
+            response.status()
+        ));
+    }
+
+    response
+        .json::<RuntimeResponse>()
+        .await
+        .map_err(|error| {
+            format!(
+                "Failed to decode AIR runtime response: {error}"
+            )
+        })
+}
 
 fn air_client() -> Result<Client, String> {
     Client::builder()
@@ -163,7 +211,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             air_health,
             air_conversation,
-            air_chat
+            air_chat,
+            air_runtime
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

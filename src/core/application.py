@@ -76,11 +76,17 @@ class ApplicationService:
     ) -> ChatResult:
         content = self._validate_chat(content)
 
+        resolved_max_tokens = (
+            max_tokens
+            if max_tokens is not None
+            else self.context.runtime.max_tokens
+        )
+
         response = self.context.chat_service.chat(
             content,
             self.context.model,
             self.context.tokenizer,
-            max_tokens=max_tokens,
+            max_tokens=resolved_max_tokens,
         )
 
         return ChatResult(content=response)
@@ -91,6 +97,13 @@ class ApplicationService:
         max_tokens: int | None = None,
     ) -> Iterator[str]:
         content = self._validate_chat(content)
+
+        resolved_max_tokens = (
+            max_tokens
+            if max_tokens is not None
+            else self.context.runtime.max_tokens
+        )
+
 
         yield from self.context.chat_service.stream_chat(
             content,
