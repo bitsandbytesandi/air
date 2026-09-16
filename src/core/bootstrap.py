@@ -1,5 +1,6 @@
 from ai.model import MODEL_PATH, load_model
 from ai.model_manager import ModelManager
+
 from chat.chat_service import ChatService
 from chat.context import ConversationContext
 from chat.conversation import Conversation
@@ -8,11 +9,15 @@ from chat.service import ConversationService
 from core.application import ApplicationService
 from core.config import CONVERSATION_FILE
 from core.context import ApplicationContext
-from core.session import Session
 from core.runtime import RuntimeConfig
+from core.session import Session
+
+from memory.service import MemoryService
+from memory.store import MemoryStore
 
 from storage.conversation_repository import ConversationRepository
 from storage.json_repository import JsonRepository
+from storage.memory_repository import MemoryRepository
 
 
 def create_application() -> ApplicationService:
@@ -22,12 +27,14 @@ def create_application() -> ApplicationService:
         model=model,
         model_path=MODEL_PATH,
     )
+
     runtime = RuntimeConfig()
+
     session = Session.create()
 
     conversation = Conversation()
 
-    repository = ConversationRepository(
+    conversation_repository = ConversationRepository(
         JsonRepository(
             CONVERSATION_FILE
         )
@@ -35,7 +42,7 @@ def create_application() -> ApplicationService:
 
     conversation_service = ConversationService(
         conversation,
-        repository,
+        conversation_repository,
     )
 
     conversation_context = ConversationContext(
@@ -48,8 +55,22 @@ def create_application() -> ApplicationService:
         conversation_context,
     )
 
+    memory_store = MemoryStore()
+
+    memory_repository = MemoryRepository(
+        JsonRepository(
+            CONVERSATION_FILE.parent / "memory.json"
+        )
+    )
+
+    memory_service = MemoryService(
+        memory_store,
+        memory_repository,
+    )
+
     context = ApplicationContext(
         chat_service=chat_service,
+        memory_service=memory_service,
         model=model,
         tokenizer=tokenizer,
         model_manager=model_manager,
