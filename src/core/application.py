@@ -1,4 +1,3 @@
-
 from collections.abc import Iterator
 
 from core.context import ApplicationContext
@@ -54,7 +53,10 @@ class ApplicationService:
 
         self._state = ApplicationState.STOPPED
 
-    def _validate_chat(self, content: str) -> str:
+    def _validate_chat(
+        self,
+        content: str,
+    ) -> str:
         if self._state != ApplicationState.RUNNING:
             raise ApplicationError(
                 "Application is not running."
@@ -89,7 +91,9 @@ class ApplicationService:
             max_tokens=resolved_max_tokens,
         )
 
-        return ChatResult(content=response)
+        return ChatResult(
+            content=response,
+        )
 
     def stream_chat(
         self,
@@ -104,12 +108,11 @@ class ApplicationService:
             else self.context.runtime.max_tokens
         )
 
-
         yield from self.context.chat_service.stream_chat(
             content,
             self.context.model,
             self.context.tokenizer,
-            max_tokens=max_tokens,
+            max_tokens=resolved_max_tokens,
         )
 
     def get_messages(self):

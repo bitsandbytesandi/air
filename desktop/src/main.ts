@@ -489,6 +489,11 @@ async function loadConversation(): Promise<void> {
       error,
     );
 
+    const message =
+      error instanceof Error
+        ? error.message
+        : String(error);
+
     elements.status.textContent =
       "AIR history unavailable";
 
@@ -496,7 +501,7 @@ async function loadConversation(): Promise<void> {
 
     addMessage(
       "system",
-      "Conversation history could not be loaded.",
+      `History error: ${message}`,
     );
   }
 }
@@ -681,16 +686,22 @@ elements.form.addEventListener(
         "AIR connected";
     } catch (error) {
       console.error(
-        "AIR streaming chat failed:",
-        error,
-      );
+      "AIR streaming chat failed:",
+      error,
+    );
 
-      assistant.content.textContent =
-        "AIR could not generate a response.";
+    const message =
+      error instanceof Error
+        ? error.message
+        : String(error);
 
-      elements.status.textContent =
-        "AIR error";
-    } finally {
+    assistant.content.textContent =
+      `AIR error: ${message}`;
+
+    elements.status.textContent =
+      "AIR error";
+  }
+      finally {
       setBusy(false);
 
       elements.input.focus();

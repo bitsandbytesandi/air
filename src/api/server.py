@@ -1,8 +1,8 @@
 import json
 import os
 import secrets
-from contextlib import asynccontextmanager
 from collections.abc import Iterator
+from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, Header, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -90,21 +90,36 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:1420",
         "http://127.0.0.1:1420",
+        "http://tauri.localhost",
+        "https://tauri.localhost",
+        "tauri://localhost",
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+
 @app.get(
     "/v1/health",
     response_model=HealthResponse,
 )
+def health(
+    _: None = Depends(require_api_token),
+    service: ApplicationService = Depends(get_application),
+):
+    return HealthResponse(
+        status="ok",
+        application=service.state.value,
+    )
+
+
 @app.get(
     "/v1/runtime",
     response_model=RuntimeResponse,
@@ -126,15 +141,6 @@ def runtime(
         config=RuntimeConfigResponse(
             max_tokens=service.context.runtime.max_tokens,
         ),
-    )
-
-def health(
-    _: None = Depends(require_api_token),
-    service: ApplicationService = Depends(get_application),
-):
-    return HealthResponse(
-        status="ok",
-        application=service.state.value,
     )
 
 
@@ -179,18 +185,29 @@ def chat_stream(
     service: ApplicationService = Depends(get_application),
 ):
     def event_stream() -> Iterator[str]:
-        for chunk in service.stream_chat(
-            content=request.content,
-            max_tokens=request.max_tokens,
-        ):
+        try:
+            for chunk in service.stream_chat(
+                content=request.content,
+                max_tokens=request.max_tokens,
+            ):
+                payload = json.dumps(
+                    {"text": chunk},
+                    ensure_ascii=False,
+                )
+
+                yield f"data: {payload}\n\n"
+
+            yield 'data: {"done": true}\n\n'
+
+        except Exception as error:
             payload = json.dumps(
-                {"text": chunk},
+                {
+                    "error": str(error),
+                },
                 ensure_ascii=False,
             )
 
             yield f"data: {payload}\n\n"
-
-        yield 'data: {"done": true}\n\n'
 
     return StreamingResponse(
         event_stream(),

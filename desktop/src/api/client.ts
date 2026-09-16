@@ -30,6 +30,9 @@ export type StreamChunk =
     }
   | {
       done: true;
+    }
+  | {
+      error: string;
     };
 
 export class AirClient {
@@ -60,8 +63,10 @@ export class AirClient {
     );
 
     if (!response.ok) {
+      const body = await response.text();
+
       throw new Error(
-        `AIR health request failed: ${response.status}`,
+        `AIR health request failed: ${response.status} ${body}`,
       );
     }
 
@@ -81,8 +86,10 @@ export class AirClient {
     );
 
     if (!response.ok) {
+      const body = await response.text();
+
       throw new Error(
-        `AIR chat request failed: ${response.status}`,
+        `AIR chat request failed: ${response.status} ${body}`,
       );
     }
 
@@ -98,8 +105,10 @@ export class AirClient {
     );
 
     if (!response.ok) {
+      const body = await response.text();
+
       throw new Error(
-        `AIR conversation request failed: ${response.status}`,
+        `AIR conversation request failed: ${response.status} ${body}`,
       );
     }
 
@@ -120,8 +129,10 @@ export class AirClient {
     );
 
     if (!response.ok) {
+      const body = await response.text();
+
       throw new Error(
-        `AIR streaming request failed: ${response.status}`,
+        `AIR streaming request failed: ${response.status} ${body}`,
       );
     }
 
@@ -184,6 +195,12 @@ export class AirClient {
             JSON.parse(
               payload,
             ) as StreamChunk;
+
+          if ("error" in chunk) {
+            throw new Error(
+              chunk.error,
+            );
+          }
 
           if ("done" in chunk) {
             return;
