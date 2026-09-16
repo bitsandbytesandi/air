@@ -5,6 +5,7 @@ import {
   airHealth,
   airRuntime,
   type ConversationMessage,
+  type RuntimeResponse,
 } from "./api/ipc";
 
 import {
@@ -39,6 +40,82 @@ app.innerHTML = `
       </div>
     </header>
 
+    <section class="model-panel">
+
+      <div class="model-panel-header">
+
+        <div>
+          <span class="panel-label">
+            MODEL CONTROL
+          </span>
+
+          <h2 id="model-name">
+            Loading model...
+          </h2>
+        </div>
+
+        <div
+          id="model-status"
+          class="status-badge"
+        >
+          Loading...
+        </div>
+
+      </div>
+
+      <div class="model-panel-grid">
+
+        <div class="model-stat">
+          <span class="model-stat-label">
+            Application
+          </span>
+
+          <strong id="application-status">
+            Loading...
+          </strong>
+        </div>
+
+        <div class="model-stat">
+          <span class="model-stat-label">
+            Model loaded
+          </span>
+
+          <strong id="model-loaded">
+            Loading...
+          </strong>
+        </div>
+
+        <div class="model-stat">
+          <span class="model-stat-label">
+            Max tokens
+          </span>
+
+          <strong id="runtime-max-tokens">
+            Loading...
+          </strong>
+        </div>
+
+      </div>
+
+      <div class="model-path">
+        <span class="model-stat-label">
+          Model path
+        </span>
+
+        <code id="model-path">
+          Loading...
+        </code>
+      </div>
+
+      <button
+        id="refresh-runtime-button"
+        type="button"
+      >
+        Refresh runtime
+      </button>
+
+    </section>
+
     <section
       id="messages"
       class="messages"
@@ -55,7 +132,7 @@ app.innerHTML = `
         id="max-tokens"
         type="number"
         min="1"
-        max="4096"
+        max="8192"
         value="512"
       />
 
@@ -126,6 +203,41 @@ const reloadButton =
     "#reload-button",
   );
 
+const modelNameElement =
+  document.querySelector<HTMLElement>(
+    "#model-name",
+  );
+
+const modelStatusElement =
+  document.querySelector<HTMLElement>(
+    "#model-status",
+  );
+
+const applicationStatusElement =
+  document.querySelector<HTMLElement>(
+    "#application-status",
+  );
+
+const modelLoadedElement =
+  document.querySelector<HTMLElement>(
+    "#model-loaded",
+  );
+
+const runtimeMaxTokensElement =
+  document.querySelector<HTMLElement>(
+    "#runtime-max-tokens",
+  );
+
+const modelPathElement =
+  document.querySelector<HTMLElement>(
+    "#model-path",
+  );
+
+const refreshRuntimeButton =
+  document.querySelector<HTMLButtonElement>(
+    "#refresh-runtime-button",
+  );
+
 if (
   !statusElement ||
   !messagesElement ||
@@ -133,7 +245,14 @@ if (
   !input ||
   !sendButton ||
   !maxTokensInput ||
-  !reloadButton
+  !reloadButton ||
+  !modelNameElement ||
+  !modelStatusElement ||
+  !applicationStatusElement ||
+  !modelLoadedElement ||
+  !runtimeMaxTokensElement ||
+  !modelPathElement ||
+  !refreshRuntimeButton
 ) {
   throw new Error(
     "AIR interface elements are missing.",
@@ -148,6 +267,13 @@ const elements = {
   sendButton,
   maxTokensInput,
   reloadButton,
+  modelName: modelNameElement,
+  modelStatus: modelStatusElement,
+  applicationStatus: applicationStatusElement,
+  modelLoaded: modelLoadedElement,
+  runtimeMaxTokens: runtimeMaxTokensElement,
+  modelPath: modelPathElement,
+  refreshRuntimeButton,
 };
 
 let conversation: ConversationMessage[] = [];
@@ -277,6 +403,75 @@ function renderConversation(
   }
 }
 
+function renderRuntime(
+  runtimeInfo: RuntimeResponse,
+): void {
+  elements.modelName.textContent =
+    runtimeInfo.model.name;
+
+  elements.modelStatus.textContent =
+    runtimeInfo.model.loaded
+      ? "LOADED"
+      : "NOT LOADED";
+
+  elements.applicationStatus.textContent =
+    runtimeInfo.application;
+
+  elements.modelLoaded.textContent =
+    runtimeInfo.model.loaded
+      ? "Yes"
+      : "No";
+
+  elements.runtimeMaxTokens.textContent =
+    String(runtimeInfo.config.max_tokens);
+
+  elements.modelPath.textContent =
+    runtimeInfo.model.path;
+
+  elements.maxTokensInput.value =
+    String(runtimeInfo.config.max_tokens);
+}
+
+async function loadRuntime(): Promise<void> {
+  try {
+    const runtimeInfo =
+      await airRuntime();
+
+    renderRuntime(
+      runtimeInfo,
+    );
+
+    elements.status.textContent =
+      "AIR connected";
+  } catch (error) {
+    console.error(
+      "AIR runtime loading failed:",
+      error,
+    );
+
+    elements.modelName.textContent =
+      "Runtime unavailable";
+
+    elements.modelStatus.textContent =
+      "ERROR";
+
+    elements.applicationStatus.textContent =
+      "Unavailable";
+
+    elements.modelLoaded.textContent =
+      "Unknown";
+
+    elements.runtimeMaxTokens.textContent =
+      "Unknown";
+
+    elements.modelPath.textContent =
+      "Unavailable";
+
+    elements.status.textContent =
+      "AIR runtime unavailable";
+  }
+}
+
 async function loadConversation(): Promise<void> {
   try {
     const result =
@@ -334,7 +529,8 @@ function setBusy(
 ): void {
   isGenerating = busy;
 
-  elements.input.disabled = busy;
+  elements.input.disabled =
+    busy;
 
   elements.sendButton.disabled =
     busy;
@@ -343,6 +539,9 @@ function setBusy(
     busy;
 
   elements.reloadButton.disabled =
+    busy;
+
+  elements.refreshRuntimeButton.disabled =
     busy;
 
   elements.sendButton.textContent =
@@ -384,6 +583,22 @@ elements.reloadButton.addEventListener(
       "Loading history...";
 
     await loadConversation();
+
+    await loadRuntime();
+  },
+);
+
+elements.refreshRuntimeButton.addEventListener(
+  "click",
+  async () => {
+    if (isGenerating) {
+      return;
+    }
+
+    elements.status.textContent =
+      "Loading runtime...";
+
+    await loadRuntime();
   },
 );
 
@@ -411,11 +626,11 @@ elements.form.addEventListener(
     if (
       !Number.isInteger(maxTokens) ||
       maxTokens < 1 ||
-      maxTokens > 4096
+      maxTokens > 8192
     ) {
       addMessage(
         "system",
-        "Max tokens must be between 1 and 4096.",
+        "Max tokens must be between 1 and 8192.",
       );
 
       return;
@@ -484,6 +699,8 @@ elements.form.addEventListener(
 );
 
 await checkHealth();
+
+await loadRuntime();
 
 await loadConversation();
 
