@@ -132,3 +132,5 @@ class ApplicationService:
 
     def restore(self) -> None:
         self.context.chat_service.restore()
+        self.context.memory_service.restore()
+

@@ -27,8 +27,7 @@ class MemoryService:
     def restore(self) -> None:
         memories = self.repository.load_all()
         
-        for memory in memories:
-            self.store.add(memory)
+        self.store.replace_all(memories)
 
     def get_all(self) -> list[Memory]:
         return self.store.all()
