@@ -1,8 +1,13 @@
 import "./styles.css";
 
 import {
-  AirClient,
+  airConversation,
+  airHealth,
   type ConversationMessage,
+} from "./api/ipc";
+
+import {
+  AirClient,
 } from "./api/client";
 
 const client = new AirClient();
@@ -25,14 +30,22 @@ app.innerHTML = `
         <p>Artificial Intelligence Runtime</p>
       </div>
 
-      <div id="status" class="status">
+      <div
+        id="status"
+        class="status"
+      >
         Connecting...
       </div>
     </header>
 
-    <section id="messages" class="messages"></section>
+    <section
+      id="messages"
+      class="messages"
+      aria-live="polite"
+    ></section>
 
     <section class="controls">
+
       <label for="max-tokens">
         Max tokens
       </label>
@@ -44,9 +57,20 @@ app.innerHTML = `
         max="4096"
         value="512"
       />
+
+      <button
+        id="reload-button"
+        type="button"
+      >
+        Reload history
+      </button>
+
     </section>
 
-    <form id="chat-form" class="chat-form">
+    <form
+      id="chat-form"
+      class="chat-form"
+    >
 
       <textarea
         id="message"
@@ -96,23 +120,25 @@ const maxTokensInput =
     "#max-tokens",
   );
 
+const reloadButton =
+  document.querySelector<HTMLButtonElement>(
+    "#reload-button",
+  );
+
 if (
   !statusElement ||
   !messagesElement ||
   !form ||
   !input ||
   !sendButton ||
-  !maxTokensInput
+  !maxTokensInput ||
+  !reloadButton
 ) {
   throw new Error(
     "AIR interface elements are missing.",
   );
 }
 
-/*
- * TypeScript now knows that every element
- * inside this object is non-null.
- */
 const elements = {
   status: statusElement,
   messages: messagesElement,
@@ -120,7 +146,12 @@ const elements = {
   input,
   sendButton,
   maxTokensInput,
+  reloadButton,
 };
+
+let conversation: ConversationMessage[] = [];
+
+let isGenerating = false;
 
 function scrollToBottom(): void {
   elements.messages.scrollTop =
@@ -224,9 +255,11 @@ function addStreamingMessage(): {
 function renderConversation(
   messages: ConversationMessage[],
 ): void {
+  conversation = [...messages];
+
   clearMessages();
 
-  if (messages.length === 0) {
+  if (conversation.length === 0) {
     addMessage(
       "system",
       "AIR is ready for conversation.",
@@ -235,7 +268,7 @@ function renderConversation(
     return;
   }
 
-  for (const message of messages) {
+  for (const message of conversation) {
     addMessage(
       message.role,
       message.content,
@@ -245,17 +278,25 @@ function renderConversation(
 
 async function loadConversation(): Promise<void> {
   try {
-    const conversation =
-      await client.conversation();
+    const result =
+      await airConversation();
 
     renderConversation(
-      conversation.messages,
+      result.messages,
     );
+
+    elements.status.textContent =
+      "AIR connected";
   } catch (error) {
     console.error(
       "AIR conversation loading failed:",
       error,
     );
+
+    elements.status.textContent =
+      "AIR history unavailable";
+
+    clearMessages();
 
     addMessage(
       "system",
@@ -267,7 +308,7 @@ async function loadConversation(): Promise<void> {
 async function checkHealth(): Promise<void> {
   try {
     const health =
-      await client.health();
+      await airHealth();
 
     elements.status.textContent =
       "AIR connected";
@@ -290,9 +331,18 @@ async function checkHealth(): Promise<void> {
 function setBusy(
   busy: boolean,
 ): void {
+  isGenerating = busy;
+
   elements.input.disabled = busy;
-  elements.sendButton.disabled = busy;
-  elements.maxTokensInput.disabled = busy;
+
+  elements.sendButton.disabled =
+    busy;
+
+  elements.maxTokensInput.disabled =
+    busy;
+
+  elements.reloadButton.disabled =
+    busy;
 
   elements.sendButton.textContent =
     busy
@@ -300,10 +350,50 @@ function setBusy(
       : "Send";
 }
 
+function appendLocalUserMessage(
+  content: string,
+): void {
+  conversation.push({
+    role: "user",
+    content,
+    created_at:
+      new Date().toISOString(),
+  });
+}
+
+function appendLocalAssistantMessage(
+  content: string,
+): void {
+  conversation.push({
+    role: "assistant",
+    content,
+    created_at:
+      new Date().toISOString(),
+  });
+}
+
+elements.reloadButton.addEventListener(
+  "click",
+  async () => {
+    if (isGenerating) {
+      return;
+    }
+
+    elements.status.textContent =
+      "Loading history...";
+
+    await loadConversation();
+  },
+);
+
 elements.form.addEventListener(
   "submit",
   async (event) => {
     event.preventDefault();
+
+    if (isGenerating) {
+      return;
+    }
 
     const content =
       elements.input.value.trim();
@@ -332,6 +422,10 @@ elements.form.addEventListener(
 
     elements.input.value = "";
 
+    appendLocalUserMessage(
+      content,
+    );
+
     addMessage(
       "user",
       content,
@@ -342,6 +436,11 @@ elements.form.addEventListener(
 
     setBusy(true);
 
+    elements.status.textContent =
+      "AIR generating...";
+
+    let assistantContent = "";
+
     try {
       await client.streamChat(
         {
@@ -349,12 +448,21 @@ elements.form.addEventListener(
           max_tokens: maxTokens,
         },
         (text) => {
-          assistant.content.textContent +=
-            text;
+          assistantContent += text;
+
+          assistant.content.textContent =
+            assistantContent;
 
           scrollToBottom();
         },
       );
+
+      appendLocalAssistantMessage(
+        assistantContent,
+      );
+
+      elements.status.textContent =
+        "AIR connected";
     } catch (error) {
       console.error(
         "AIR streaming chat failed:",
@@ -368,12 +476,14 @@ elements.form.addEventListener(
         "AIR error";
     } finally {
       setBusy(false);
+
       elements.input.focus();
     }
   },
 );
 
 await checkHealth();
+
 await loadConversation();
 
 elements.input.focus();

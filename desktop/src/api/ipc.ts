@@ -33,6 +33,6 @@ export async function airChat(
 ): Promise<ChatResponse> {
   return invoke<ChatResponse>("air_chat", {
     content,
-    maxTokens,
+    max_tokens: maxTokens,
   });
 }
