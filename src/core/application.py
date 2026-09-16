@@ -130,7 +130,26 @@ class ApplicationService:
             for message in messages
         ]
 
+    def get_memories(self):
+        return self.context.memory_service.get_all()
+
+    def remember(self, content: str):
+        if self._state != ApplicationState.RUNNING:
+            raise ApplicationError(
+                "Application is not running."
+            )
+
+        content = content.strip()
+
+        if not content:
+            raise InvalidMessageError(
+                "Memory cannot be empty."
+            )
+
+        return self.context.memory_service.remember(
+            content
+        )
+
     def restore(self) -> None:
         self.context.chat_service.restore()
         self.context.memory_service.restore()
-

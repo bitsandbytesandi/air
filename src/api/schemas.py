@@ -27,6 +27,22 @@ class ConversationResponse(BaseModel):
     messages: list[ConversationMessage]
 
 
+class MemoryCreateRequest(BaseModel):
+    content: str = Field(
+        min_length=1,
+        max_length=10_000,
+    )
+
+
+class MemoryResponse(BaseModel):
+    content: str
+    created_at: str
+
+
+class MemoryListResponse(BaseModel):
+    memories: list[MemoryResponse]
+
+
 class HealthResponse(BaseModel):
     status: str
     application: str

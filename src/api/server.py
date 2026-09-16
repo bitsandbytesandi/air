@@ -13,6 +13,9 @@ from api.schemas import (
     ChatResponse,
     ConversationResponse,
     HealthResponse,
+    MemoryCreateRequest,
+    MemoryListResponse,
+    MemoryResponse,
     ModelInfoResponse,
     RuntimeConfigResponse,
     RuntimeResponse,
@@ -156,6 +159,43 @@ def conversation(
         messages=service.get_conversation()
     )
 
+@app.get(
+    "/v1/memory",
+    response_model=MemoryListResponse,
+)
+def memory_list(
+    _: None = Depends(require_api_token),
+    service: ApplicationService = Depends(get_application),
+):
+    memories = service.get_memories()
+
+    return MemoryListResponse(
+        memories=[
+            MemoryResponse(
+                content=memory.content,
+                created_at=memory.created_at.isoformat(),
+            )
+            for memory in memories
+        ]
+    )
+
+@app.post(
+    "/v1/memory",
+    response_model=MemoryResponse,
+)
+def memory_create(
+    request: MemoryCreateRequest,
+    _: None = Depends(require_api_token),
+    service: ApplicationService = Depends(get_application),
+):
+    memory = service.remember(
+        request.content
+    )
+
+    return MemoryResponse(
+        content=memory.content,
+        created_at=memory.created_at.isoformat(),
+    )
 
 @app.post(
     "/v1/chat",
@@ -174,7 +214,6 @@ def chat(
     return ChatResponse(
         content=result.content
     )
-
 
 @app.post(
     "/v1/chat/stream",
