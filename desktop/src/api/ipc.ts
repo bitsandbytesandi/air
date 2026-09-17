@@ -49,6 +49,7 @@ export interface RuntimeResponse {
  */
 
 export interface MemoryResponse {
+  id: string;
   content: string;
   created_at: string;
 }

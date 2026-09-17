@@ -172,6 +172,7 @@ def memory_list(
     return MemoryListResponse(
         memories=[
             MemoryResponse(
+                id=str(memory.id),
                 content=memory.content,
                 created_at=memory.created_at.isoformat(),
             )
@@ -200,6 +201,7 @@ def memory_search(
     return MemoryListResponse(
         memories=[
             MemoryResponse(
+                id=str(memory.id),
                 content=memory.content,
                 created_at=memory.created_at.isoformat(),
             )
@@ -221,6 +223,7 @@ def memory_create(
     )
 
     return MemoryResponse(
+        id=str(memory.id),
         content=memory.content,
         created_at=memory.created_at.isoformat(),
     )

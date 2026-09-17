@@ -35,6 +35,7 @@ class MemoryCreateRequest(BaseModel):
 
 
 class MemoryResponse(BaseModel):
+    id: str
     content: str
     created_at: str
 
