@@ -132,6 +132,19 @@ class ApplicationService:
 
     def get_memories(self):
         return self.context.memory_service.get_all()
+   
+    def search_memories(
+        self,
+        query: str,
+    ):
+        if self._state != ApplicationState.RUNNING:
+            raise ApplicationError(
+                "Application is not running."
+            )
+
+        return self.context.memory_service.search(
+            query
+        )
 
     def remember(self, content: str):
         if self._state != ApplicationState.RUNNING:
