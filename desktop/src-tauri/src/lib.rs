@@ -346,6 +346,54 @@ async fn air_memories()
         })
 }
 
+#[tauri::command]
+async fn air_search_memories(
+    query: String,
+) -> Result<MemoryListResponse, String> {
+    let query = query.trim();
+
+    let client = air_client()?;
+
+    let response = air_request(
+        client
+            .get(format!(
+                "{AIR_API_URL}/v1/memory/search"
+            ))
+            .query(&[("query", query)]),
+    )
+    .send()
+    .await
+    .map_err(|error| {
+        format!(
+            "AIR memory search request failed: {error}"
+        )
+    })?;
+
+    if !response.status().is_success() {
+        let status = response.status();
+
+        let body = response
+            .text()
+            .await
+            .unwrap_or_else(|_| {
+                "Unable to read AIR memory search error response."
+                    .to_string()
+            });
+
+        return Err(format!(
+            "AIR memory search returned HTTP {status}: {body}"
+        ));
+    }
+
+    response
+        .json::<MemoryListResponse>()
+        .await
+        .map_err(|error| {
+            format!(
+                "Invalid AIR memory search response: {error}"
+            )
+        })
+}
 
 #[tauri::command]
 async fn air_remember(
@@ -425,6 +473,7 @@ pub fn run() {
                 air_chat,
                 air_runtime,
                 air_memories,
+                air_search_memories,
                 air_remember
             ],
         )

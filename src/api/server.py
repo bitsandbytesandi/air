@@ -4,7 +4,7 @@ import secrets
 from collections.abc import Iterator
 from contextlib import asynccontextmanager
 
-from fastapi import Depends, FastAPI, Header, HTTPException, status
+from fastapi import Depends, FastAPI, Header, HTTPException, Query, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 
@@ -168,6 +168,34 @@ def memory_list(
     service: ApplicationService = Depends(get_application),
 ):
     memories = service.get_memories()
+
+    return MemoryListResponse(
+        memories=[
+            MemoryResponse(
+                content=memory.content,
+                created_at=memory.created_at.isoformat(),
+            )
+            for memory in memories
+        ]
+    )
+
+@app.get(
+    "/v1/memory/search",
+    response_model=MemoryListResponse,
+)
+def memory_search(
+    query: str = Query(
+        default="",
+        max_length=10_000,
+    ),
+    _: None = Depends(require_api_token),
+    service: ApplicationService = Depends(
+        get_application,
+    ),
+):
+    memories = service.search_memories(
+        query
+    )
 
     return MemoryListResponse(
         memories=[

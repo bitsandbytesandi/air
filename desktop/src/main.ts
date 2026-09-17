@@ -200,8 +200,42 @@ app.innerHTML = `
         </div>
 
       </form>
+ 
+      <div class="memory-search">
 
+        <label
+          for="memory-search-input"
+          class="memory-input-label"
+        >
+          Search memories
+        </label>
 
+        <div class="memory-search-row">
+
+          <input
+            id="memory-search-input"
+            type="search"
+            placeholder="Search stored memories..."
+          />
+
+          <button
+            id="memory-search-button"
+            type="button"
+          >
+            Search
+          </button>
+
+          <button
+            id="memory-clear-search-button"
+            type="button"
+          >
+            Clear
+          </button>
+
+      </div>
+
+    </div>
+      
       <div
         id="memory-status"
         class="memory-status"
@@ -385,6 +419,20 @@ const memoryCharacterCountElement =
     "#memory-character-count",
   );
 
+const memorySearchInput =
+  document.querySelector<HTMLInputElement>(
+    "#memory-search-input",
+  );
+
+const memorySearchButton =
+  document.querySelector<HTMLButtonElement>(
+    "#memory-search-button",
+  );
+
+const memoryClearSearchButton =
+  document.querySelector<HTMLButtonElement>(
+    "#memory-clear-search-button",
+  );
 
 if (
   !statusElement ||
@@ -405,6 +453,9 @@ if (
   !memoryInput ||
   !rememberButton ||
   !refreshMemoryButton ||
+  !memorySearchInput ||
+  !memorySearchButton ||
+  !memoryClearSearchButton ||
   !memoriesElement ||
   !memoryStatusElement ||
   !memoryCharacterCountElement
@@ -435,6 +486,9 @@ const elements = {
   memoryInput,
   rememberButton,
   refreshMemoryButton,
+  memorySearchInput,
+  memorySearchButton,
+  memoryClearSearchButton,
   memories: memoriesElement,
   memoryStatus: memoryStatusElement,
   memoryCharacterCount:
@@ -872,6 +926,84 @@ async function loadMemories(): Promise<void> {
   }
 }
 
+async function searchMemories(): Promise<void> {
+  const query =
+    elements.memorySearchInput.value.trim();
+
+  if (!query) {
+    await loadMemories();
+    return;
+  }
+
+  elements.memoryStatus.textContent =
+    "Searching memories...";
+
+  elements.memorySearchButton.disabled = true;
+
+  try {
+    const result =
+      await memoryClient.search(
+        query,
+      );
+
+    renderMemories(
+      result.memories,
+    );
+
+    elements.memoryStatus.textContent =
+      `${result.memories.length} result${
+        result.memories.length === 1
+          ? ""
+          : "s"
+      } found.`;
+  } catch (error) {
+    console.error(
+      "AIR memory search failed:",
+      error,
+    );
+
+    const message =
+      error instanceof Error
+        ? error.message
+        : String(error);
+
+    elements.memoryStatus.textContent =
+      `Memory search failed: ${message}`;
+  } finally {
+    elements.memorySearchButton.disabled =
+      false;
+  }
+}
+elements.memorySearchButton.addEventListener(
+  "click",
+  () => {
+    void searchMemories();
+  },
+);
+
+
+elements.memoryClearSearchButton.addEventListener(
+  "click",
+  () => {
+    elements.memorySearchInput.value = "";
+
+    void loadMemories();
+  },
+);
+
+
+elements.memorySearchInput.addEventListener(
+  "keydown",
+  (event) => {
+    if (
+      event.key === "Enter"
+    ) {
+      event.preventDefault();
+
+      void searchMemories();
+    }
+  },
+);
 
 function setMemoryBusy(
   busy: boolean,

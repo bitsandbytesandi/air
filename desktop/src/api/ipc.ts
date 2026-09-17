@@ -104,6 +104,16 @@ export async function airMemories(): Promise<MemoryListResponse> {
   );
 }
 
+export async function airSearchMemories(
+  query: string,
+): Promise<MemoryListResponse> {
+  return invoke<MemoryListResponse>(
+    "air_search_memories",
+    {
+      query,
+    },
+  );
+}
 
 export async function airRemember(
   content: string,

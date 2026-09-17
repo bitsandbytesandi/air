@@ -1,6 +1,7 @@
 import {
   airMemories,
   airRemember,
+  airSearchMemories,
   type MemoryListResponse,
   type MemoryResponse,
 } from "./ipc";
@@ -9,6 +10,14 @@ import {
 export class MemoryClient {
   async list(): Promise<MemoryListResponse> {
     return airMemories();
+  }
+
+  async search(
+    query: string,
+  ): Promise<MemoryListResponse> {
+    return airSearchMemories(
+      query.trim(),
+    );
   }
 
 
