@@ -72,6 +72,7 @@ struct RuntimeResponse {
 
 #[derive(Debug, Serialize, Deserialize)]
 struct MemoryResponse {
+    id: String,
     content: String,
     created_at: String,
 }

@@ -163,6 +163,19 @@ class ApplicationService:
             content
         )
 
+    def delete_memory(
+        self,
+        memory_id,
+    ) -> bool:
+        if self._state != ApplicationState.RUNNING:
+            raise ApplicationError(
+                "Application is not running."
+            )
+
+        return self.context.memory_service.delete(
+            memory_id
+        )
+
     def restore(self) -> None:
         self.context.chat_service.restore()
         self.context.memory_service.restore()
