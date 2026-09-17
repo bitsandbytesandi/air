@@ -875,6 +875,10 @@ function addMemoryCard(
     metadata,
   );
 
+  card.appendChild(
+  deleteButton,
+  );
+  
   elements.memories.appendChild(
     card,
   );
