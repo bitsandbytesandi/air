@@ -6,13 +6,21 @@ import {
   airRuntime,
   type ConversationMessage,
   type RuntimeResponse,
+  type MemoryResponse,
 } from "./api/ipc";
 
 import {
   AirClient,
 } from "./api/client";
 
+import {
+  MemoryClient,
+} from "./api/memory";
+
+
 const client = new AirClient();
+const memoryClient = new MemoryClient();
+
 
 const app =
   document.querySelector<HTMLDivElement>("#app");
@@ -22,6 +30,7 @@ if (!app) {
     "AIR application root was not found.",
   );
 }
+
 
 app.innerHTML = `
   <main class="air-shell">
@@ -39,6 +48,7 @@ app.innerHTML = `
         Connecting...
       </div>
     </header>
+
 
     <section class="model-panel">
 
@@ -63,6 +73,7 @@ app.innerHTML = `
 
       </div>
 
+
       <div class="model-panel-grid">
 
         <div class="model-stat">
@@ -75,6 +86,7 @@ app.innerHTML = `
           </strong>
         </div>
 
+
         <div class="model-stat">
           <span class="model-stat-label">
             Model loaded
@@ -84,6 +96,7 @@ app.innerHTML = `
             Loading...
           </strong>
         </div>
+
 
         <div class="model-stat">
           <span class="model-stat-label">
@@ -97,6 +110,7 @@ app.innerHTML = `
 
       </div>
 
+
       <div class="model-path">
         <span class="model-stat-label">
           Model path
@@ -107,6 +121,7 @@ app.innerHTML = `
         </code>
       </div>
 
+
       <button
         id="refresh-runtime-button"
         type="button"
@@ -116,11 +131,101 @@ app.innerHTML = `
 
     </section>
 
+
+    <!-- MEMORY PANEL -->
+
+    <section class="memory-panel">
+
+      <div class="memory-panel-header">
+
+        <div>
+          <span class="panel-label">
+            MEMORY
+          </span>
+
+          <h2>
+            AIR Memory
+          </h2>
+
+          <p class="memory-description">
+            Persistent information stored by AIR.
+          </p>
+        </div>
+
+        <button
+          id="refresh-memory-button"
+          type="button"
+        >
+          Refresh memory
+        </button>
+
+      </div>
+
+
+      <form
+        id="memory-form"
+        class="memory-form"
+      >
+
+        <label
+          for="memory-input"
+          class="memory-input-label"
+        >
+          Remember something
+        </label>
+
+        <textarea
+          id="memory-input"
+          rows="3"
+          maxlength="10000"
+          placeholder="Enter information AIR should remember..."
+        ></textarea>
+
+        <div class="memory-form-footer">
+
+          <span
+            id="memory-character-count"
+            class="memory-character-count"
+          >
+            0 / 10000
+          </span>
+
+          <button
+            id="remember-button"
+            type="submit"
+          >
+            Remember
+          </button>
+
+        </div>
+
+      </form>
+
+
+      <div
+        id="memory-status"
+        class="memory-status"
+        aria-live="polite"
+      >
+        Loading memories...
+      </div>
+
+
+      <div
+        id="memories"
+        class="memories"
+        aria-live="polite"
+      ></div>
+
+    </section>
+
+
     <section
       id="messages"
       class="messages"
       aria-live="polite"
     ></section>
+
 
     <section class="controls">
 
@@ -145,6 +250,7 @@ app.innerHTML = `
 
     </section>
 
+
     <form
       id="chat-form"
       class="chat-form"
@@ -167,6 +273,7 @@ app.innerHTML = `
 
   </main>
 `;
+
 
 const statusElement =
   document.querySelector<HTMLDivElement>(
@@ -238,6 +345,47 @@ const refreshRuntimeButton =
     "#refresh-runtime-button",
   );
 
+
+/*
+ * Memory elements
+ */
+
+const memoryForm =
+  document.querySelector<HTMLFormElement>(
+    "#memory-form",
+  );
+
+const memoryInput =
+  document.querySelector<HTMLTextAreaElement>(
+    "#memory-input",
+  );
+
+const rememberButton =
+  document.querySelector<HTMLButtonElement>(
+    "#remember-button",
+  );
+
+const refreshMemoryButton =
+  document.querySelector<HTMLButtonElement>(
+    "#refresh-memory-button",
+  );
+
+const memoriesElement =
+  document.querySelector<HTMLElement>(
+    "#memories",
+  );
+
+const memoryStatusElement =
+  document.querySelector<HTMLElement>(
+    "#memory-status",
+  );
+
+const memoryCharacterCountElement =
+  document.querySelector<HTMLElement>(
+    "#memory-character-count",
+  );
+
+
 if (
   !statusElement ||
   !messagesElement ||
@@ -252,12 +400,20 @@ if (
   !modelLoadedElement ||
   !runtimeMaxTokensElement ||
   !modelPathElement ||
-  !refreshRuntimeButton
+  !refreshRuntimeButton ||
+  !memoryForm ||
+  !memoryInput ||
+  !rememberButton ||
+  !refreshMemoryButton ||
+  !memoriesElement ||
+  !memoryStatusElement ||
+  !memoryCharacterCountElement
 ) {
   throw new Error(
     "AIR interface elements are missing.",
   );
 }
+
 
 const elements = {
   status: statusElement,
@@ -274,20 +430,41 @@ const elements = {
   runtimeMaxTokens: runtimeMaxTokensElement,
   modelPath: modelPathElement,
   refreshRuntimeButton,
+
+  memoryForm,
+  memoryInput,
+  rememberButton,
+  refreshMemoryButton,
+  memories: memoriesElement,
+  memoryStatus: memoryStatusElement,
+  memoryCharacterCount:
+    memoryCharacterCountElement,
 };
+
 
 let conversation: ConversationMessage[] = [];
 
+let memories: MemoryResponse[] = [];
+
 let isGenerating = false;
+
+let isMemoryBusy = false;
+
+
+/*
+ * Chat presentation
+ */
 
 function scrollToBottom(): void {
   elements.messages.scrollTop =
     elements.messages.scrollHeight;
 }
 
+
 function clearMessages(): void {
   elements.messages.innerHTML = "";
 }
+
 
 function addMessage(
   role: string,
@@ -334,6 +511,7 @@ function addMessage(
   return message;
 }
 
+
 function addStreamingMessage(): {
   message: HTMLElement;
   content: HTMLDivElement;
@@ -379,6 +557,7 @@ function addStreamingMessage(): {
   };
 }
 
+
 function renderConversation(
   messages: ConversationMessage[],
 ): void {
@@ -402,6 +581,11 @@ function renderConversation(
     );
   }
 }
+
+
+/*
+ * Runtime presentation
+ */
 
 function renderRuntime(
   runtimeInfo: RuntimeResponse,
@@ -431,6 +615,7 @@ function renderRuntime(
   elements.maxTokensInput.value =
     String(runtimeInfo.config.max_tokens);
 }
+
 
 async function loadRuntime(): Promise<void> {
   try {
@@ -472,6 +657,11 @@ async function loadRuntime(): Promise<void> {
   }
 }
 
+
+/*
+ * Conversation loading
+ */
+
 async function loadConversation(): Promise<void> {
   try {
     const result =
@@ -506,6 +696,11 @@ async function loadConversation(): Promise<void> {
   }
 }
 
+
+/*
+ * Health
+ */
+
 async function checkHealth(): Promise<void> {
   try {
     const health =
@@ -528,6 +723,243 @@ async function checkHealth(): Promise<void> {
     );
   }
 }
+
+
+/*
+ * Memory presentation
+ */
+
+function updateMemoryCharacterCount(): void {
+  const length =
+    elements.memoryInput.value.length;
+
+  elements.memoryCharacterCount.textContent =
+    `${length} / 10000`;
+}
+
+
+function formatMemoryDate(
+  createdAt: string,
+): string {
+  const date =
+    new Date(createdAt);
+
+  if (
+    Number.isNaN(
+      date.getTime(),
+    )
+  ) {
+    return createdAt;
+  }
+
+  return date.toLocaleString();
+}
+
+
+function clearMemories(): void {
+  elements.memories.innerHTML = "";
+}
+
+
+function addMemoryCard(
+  memory: MemoryResponse,
+): void {
+  const card =
+    document.createElement("article");
+
+  card.className =
+    "memory-card";
+
+
+  const content =
+    document.createElement("div");
+
+  content.className =
+    "memory-content";
+
+  content.textContent =
+    memory.content;
+
+
+  const metadata =
+    document.createElement("div");
+
+  metadata.className =
+    "memory-metadata";
+
+  metadata.textContent =
+    formatMemoryDate(
+      memory.created_at,
+    );
+
+
+  card.appendChild(
+    content,
+  );
+
+  card.appendChild(
+    metadata,
+  );
+
+  elements.memories.appendChild(
+    card,
+  );
+}
+
+
+function renderMemories(
+  memoryList: MemoryResponse[],
+): void {
+  memories = [...memoryList];
+
+  clearMemories();
+
+  if (memories.length === 0) {
+    elements.memories.innerHTML = `
+      <div class="memory-empty">
+        No memories stored yet.
+      </div>
+    `;
+
+    return;
+  }
+
+  for (const memory of memories) {
+    addMemoryCard(
+      memory,
+    );
+  }
+}
+
+
+async function loadMemories(): Promise<void> {
+  if (isMemoryBusy) {
+    return;
+  }
+
+  try {
+    elements.memoryStatus.textContent =
+      "Loading memories...";
+
+    const result =
+      await memoryClient.list();
+
+    renderMemories(
+      result.memories,
+    );
+
+    elements.memoryStatus.textContent =
+      `${result.memories.length} ${
+        result.memories.length === 1
+          ? "memory"
+          : "memories"
+      } stored.`;
+  } catch (error) {
+    console.error(
+      "AIR memory loading failed:",
+      error,
+    );
+
+    const message =
+      error instanceof Error
+        ? error.message
+        : String(error);
+
+    elements.memoryStatus.textContent =
+      `Memory error: ${message}`;
+
+    clearMemories();
+  }
+}
+
+
+function setMemoryBusy(
+  busy: boolean,
+): void {
+  isMemoryBusy = busy;
+
+  elements.memoryInput.disabled =
+    busy;
+
+  elements.rememberButton.disabled =
+    busy;
+
+  elements.refreshMemoryButton.disabled =
+    busy;
+
+  elements.rememberButton.textContent =
+    busy
+      ? "Saving..."
+      : "Remember";
+}
+
+
+async function rememberContent(
+  content: string,
+): Promise<void> {
+  setMemoryBusy(true);
+
+  elements.memoryStatus.textContent =
+    "Saving memory...";
+
+  try {
+    const memory =
+      await memoryClient.remember(
+        content,
+      );
+
+    /*
+     * Keep the newly-created memory visible
+     * immediately, then reload from the
+     * authoritative backend source.
+     */
+
+    memories = [
+      ...memories,
+      memory,
+    ];
+
+    renderMemories(
+      memories,
+    );
+
+    elements.memoryInput.value =
+      "";
+
+    updateMemoryCharacterCount();
+
+    elements.memoryStatus.textContent =
+      "Memory saved.";
+
+    elements.status.textContent =
+      "AIR connected";
+  } catch (error) {
+    console.error(
+      "AIR memory creation failed:",
+      error,
+    );
+
+    const message =
+      error instanceof Error
+        ? error.message
+        : String(error);
+
+    elements.memoryStatus.textContent =
+      `Memory error: ${message}`;
+
+    elements.status.textContent =
+      "AIR memory error";
+  } finally {
+    setMemoryBusy(false);
+
+    elements.memoryInput.focus();
+  }
+}
+
+
+/*
+ * Busy state
+ */
 
 function setBusy(
   busy: boolean,
@@ -555,6 +987,11 @@ function setBusy(
       : "Send";
 }
 
+
+/*
+ * Local conversation state
+ */
+
 function appendLocalUserMessage(
   content: string,
 ): void {
@@ -566,6 +1003,7 @@ function appendLocalUserMessage(
   });
 }
 
+
 function appendLocalAssistantMessage(
   content: string,
 ): void {
@@ -576,6 +1014,84 @@ function appendLocalAssistantMessage(
       new Date().toISOString(),
   });
 }
+
+
+/*
+ * Memory character counter
+ */
+
+elements.memoryInput.addEventListener(
+  "input",
+  () => {
+    updateMemoryCharacterCount();
+  },
+);
+
+
+/*
+ * Memory form
+ */
+
+elements.memoryForm.addEventListener(
+  "submit",
+  async (event) => {
+    event.preventDefault();
+
+    if (
+      isMemoryBusy ||
+      isGenerating
+    ) {
+      return;
+    }
+
+    const content =
+      elements.memoryInput.value.trim();
+
+    if (!content) {
+      elements.memoryStatus.textContent =
+        "Memory content cannot be empty.";
+
+      elements.memoryInput.focus();
+
+      return;
+    }
+
+    if (content.length > 10000) {
+      elements.memoryStatus.textContent =
+        "Memory content cannot exceed 10000 characters.";
+
+      return;
+    }
+
+    await rememberContent(
+      content,
+    );
+  },
+);
+
+
+/*
+ * Memory refresh
+ */
+
+elements.refreshMemoryButton.addEventListener(
+  "click",
+  async () => {
+    if (
+      isMemoryBusy ||
+      isGenerating
+    ) {
+      return;
+    }
+
+    await loadMemories();
+  },
+);
+
+
+/*
+ * Reload conversation + runtime
+ */
 
 elements.reloadButton.addEventListener(
   "click",
@@ -593,6 +1109,11 @@ elements.reloadButton.addEventListener(
   },
 );
 
+
+/*
+ * Refresh runtime
+ */
+
 elements.refreshRuntimeButton.addEventListener(
   "click",
   async () => {
@@ -606,6 +1127,11 @@ elements.refreshRuntimeButton.addEventListener(
     await loadRuntime();
   },
 );
+
+
+/*
+ * Chat form
+ */
 
 elements.form.addEventListener(
   "submit",
@@ -686,22 +1212,21 @@ elements.form.addEventListener(
         "AIR connected";
     } catch (error) {
       console.error(
-      "AIR streaming chat failed:",
-      error,
-    );
+        "AIR streaming chat failed:",
+        error,
+      );
 
-    const message =
-      error instanceof Error
-        ? error.message
-        : String(error);
+      const message =
+        error instanceof Error
+          ? error.message
+          : String(error);
 
-    assistant.content.textContent =
-      `AIR error: ${message}`;
+      assistant.content.textContent =
+        `AIR error: ${message}`;
 
-    elements.status.textContent =
-      "AIR error";
-  }
-      finally {
+      elements.status.textContent =
+        "AIR error";
+    } finally {
       setBusy(false);
 
       elements.input.focus();
@@ -709,10 +1234,19 @@ elements.form.addEventListener(
   },
 );
 
+
+/*
+ * AIR startup
+ */
+
 await checkHealth();
 
 await loadRuntime();
 
 await loadConversation();
+
+await loadMemories();
+
+updateMemoryCharacterCount();
 
 elements.input.focus();
