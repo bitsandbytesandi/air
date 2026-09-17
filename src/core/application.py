@@ -39,6 +39,19 @@ class ApplicationService:
         except Exception:
             self._state = ApplicationState.FAILED
             raise
+    
+    def delete_memory(
+        self,
+        memory_id,
+    ) -> bool:
+        if self._state != ApplicationState.RUNNING:
+            raise ApplicationError(
+                "Application is not running."
+            )
+
+        return self.context.memory_service.delete(
+            memory_id
+        )
 
     def shutdown(self) -> None:
         if self._state == ApplicationState.STOPPED:

@@ -218,6 +218,31 @@
   opacity: 0.45;
 }
 
+.memory-delete-button {
+
+  margin-top: 12px;
+
+  padding: 6px 10px;
+
+  border: 1px solid rgba(255, 255, 255, 0.12);
+
+  border-radius: 6px;
+
+  background: rgba(255, 255, 255, 0.05);
+
+  color: inherit;
+
+  font-size: 12px;
+
+  cursor: pointer;
+
+}
+
+.memory-delete-button:hover {
+
+  background: rgba(255, 255, 255, 0.10);
+
+}
 
 .memory-empty {
   padding: 24px;
