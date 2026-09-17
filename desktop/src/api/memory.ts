@@ -1,4 +1,5 @@
 import {
+  airDeleteMemory,
   airMemories,
   airRemember,
   airSearchMemories,
@@ -20,6 +21,22 @@ export class MemoryClient {
     );
   }
 
+  async delete(
+    id: string,
+  ): Promise<void> {
+    const normalizedId =
+      id.trim();
+
+    if (!normalizedId) {
+      throw new Error(
+        "Memory ID cannot be empty.",
+      );
+    }
+
+    await airDeleteMemory(
+      normalizedId,
+    );
+  }
 
   async remember(
     content: string,

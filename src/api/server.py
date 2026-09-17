@@ -3,6 +3,7 @@ import os
 import secrets
 from collections.abc import Iterator
 from contextlib import asynccontextmanager
+from uuid import UUID
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -227,6 +228,27 @@ def memory_create(
         content=memory.content,
         created_at=memory.created_at.isoformat(),
     )
+
+@app.delete(
+    "/v1/memory/{memory_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def memory_delete(
+    memory_id: UUID,
+    _: None = Depends(require_api_token),
+    service: ApplicationService = Depends(
+        get_application,
+    ),
+):
+    deleted = service.delete_memory(
+        memory_id
+    )
+
+    if not deleted:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Memory not found.",
+        )
 
 @app.post(
     "/v1/chat",

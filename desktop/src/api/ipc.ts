@@ -126,3 +126,14 @@ export async function airRemember(
     },
   );
 }
+
+export async function airDeleteMemory(
+  id: string,
+): Promise<void> {
+  return invoke<void>(
+    "air_delete_memory",
+    {
+      id,
+    },
+  );
+}

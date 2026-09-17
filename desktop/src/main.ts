@@ -846,6 +846,26 @@ function addMemoryCard(
       memory.created_at,
     );
 
+  const deleteButton =
+    document.createElement("button");
+
+  deleteButton.type =
+    "button";
+
+  deleteButton.className =
+    "memory-delete-button";
+
+  deleteButton.textContent =
+    "Delete";
+
+  deleteButton.addEventListener(
+    "click",
+    () => {
+      void deleteMemory(
+        memory.id,
+      );
+    },
+  );
 
   card.appendChild(
     content,
@@ -884,7 +904,58 @@ function renderMemories(
     );
   }
 }
+async function deleteMemory(
+  id: string,
+): Promise<void> {
+  if (isMemoryBusy) {
+    return;
+  }
 
+  setMemoryBusy(true);
+
+  elements.memoryStatus.textContent =
+    "Deleting memory...";
+
+  try {
+    await memoryClient.delete(
+      id,
+    );
+
+    memories =
+      memories.filter(
+        (memory) =>
+          memory.id !== id,
+      );
+
+    renderMemories(
+      memories,
+    );
+
+    elements.memoryStatus.textContent =
+      "Memory deleted.";
+
+    elements.status.textContent =
+      "AIR connected";
+  } catch (error) {
+    console.error(
+      "AIR memory deletion failed:",
+      error,
+    );
+
+    const message =
+      error instanceof Error
+        ? error.message
+        : String(error);
+
+    elements.memoryStatus.textContent =
+      `Memory delete failed: ${message}`;
+
+    elements.status.textContent =
+      "AIR memory error";
+  } finally {
+    setMemoryBusy(false);
+  }
+}
 
 async function loadMemories(): Promise<void> {
   if (isMemoryBusy) {
