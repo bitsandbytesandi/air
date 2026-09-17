@@ -455,6 +455,53 @@ async fn air_remember(
         })
 }
 
+#[tauri::command]
+async fn air_delete_memory(
+    id: String,
+) -> Result<(), String> {
+    let id = id.trim();
+
+    if id.is_empty() {
+        return Err(
+            "AIR memory ID cannot be empty."
+                .to_string()
+        );
+    }
+
+    let client = air_client()?;
+
+    let response = air_request(
+        client
+            .delete(format!(
+                "{AIR_API_URL}/v1/memory/{id}"
+            )),
+    )
+    .send()
+    .await
+    .map_err(|error| {
+        format!(
+            "AIR memory delete request failed: {error}"
+        )
+    })?;
+
+    if !response.status().is_success() {
+        let status = response.status();
+
+        let body = response
+            .text()
+            .await
+            .unwrap_or_else(|_| {
+                "Unable to read AIR memory delete error response."
+                    .to_string()
+            });
+
+        return Err(format!(
+            "AIR memory delete returned HTTP {status}: {body}"
+        ));
+    }
+
+    Ok(())
+}
 
 /*
  * Tauri application
@@ -474,7 +521,8 @@ pub fn run() {
                 air_runtime,
                 air_memories,
                 air_search_memories,
-                air_remember
+                air_remember,
+                air_delete_memory
             ],
         )
         .run(
