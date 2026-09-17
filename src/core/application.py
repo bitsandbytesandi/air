@@ -107,6 +107,9 @@ class ApplicationService:
         return ChatResult(
             content=response,
         )
+     
+    def get_tool_service(self):
+        return self.context.tool_service
 
     def stream_chat(
         self,

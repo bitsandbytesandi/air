@@ -1,6 +1,6 @@
 from ai.model import MODEL_PATH, load_model
 from ai.model_manager import ModelManager
-
+from tools.bootstrap import create_tool_service
 from chat.chat_service import ChatService
 from chat.context import ConversationContext
 from chat.conversation import Conversation
@@ -68,6 +68,10 @@ def create_application() -> ApplicationService:
         memory_repository,
     )
 
+    tool_service = create_tool_service(
+        memory_service
+    )
+
     context = ApplicationContext(
         chat_service=chat_service,
         memory_service=memory_service,
@@ -76,6 +80,8 @@ def create_application() -> ApplicationService:
         model_manager=model_manager,
         runtime=runtime,
         session=session,
+        tool_service=tool_service,
+
     )
 
     return ApplicationService(
