@@ -21,6 +21,8 @@ from storage.memory_repository import MemoryRepository
 
 from diagnostics.service import DiagnosticsService
 from diagnostics.store import DiagnosticsStore
+from diagnostics.health_service import HealthService
+from diagnostics.health_store import HealthStore
 
 def create_application() -> ApplicationService:
     model, tokenizer = load_model()
@@ -80,6 +82,12 @@ def create_application() -> ApplicationService:
         diagnostics_store
     )
 
+    health_store = HealthStore()
+
+    health_service = HealthService(
+        health_store
+    )
+
     context = ApplicationContext(
         chat_service=chat_service,
         memory_service=memory_service,
@@ -90,7 +98,7 @@ def create_application() -> ApplicationService:
         session=session,
         tool_service=tool_service,
         diagnostics_service=diagnostics_service,
-
+        health_service=health_service,
     )
 
     return ApplicationService(
