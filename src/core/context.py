@@ -6,7 +6,7 @@ from core.runtime import RuntimeConfig
 from core.session import Session
 from memory.service import MemoryService
 from tools.service import ToolService
-
+from diagnostics.service import DiagnosticsService
 
 @dataclass
 class ApplicationContext:
@@ -18,3 +18,4 @@ class ApplicationContext:
     model_manager: ModelManager
     runtime: RuntimeConfig
     session: Session
+    diagnostics_service: DiagnosticsService

@@ -19,6 +19,8 @@ from storage.conversation_repository import ConversationRepository
 from storage.json_repository import JsonRepository
 from storage.memory_repository import MemoryRepository
 
+from diagnostics.service import DiagnosticsService
+from diagnostics.store import DiagnosticsStore
 
 def create_application() -> ApplicationService:
     model, tokenizer = load_model()
@@ -72,6 +74,12 @@ def create_application() -> ApplicationService:
         memory_service
     )
 
+    diagnostics_store = DiagnosticsStore()
+
+    diagnostics_service = DiagnosticsService(
+        diagnostics_store
+    )
+
     context = ApplicationContext(
         chat_service=chat_service,
         memory_service=memory_service,
@@ -81,6 +89,7 @@ def create_application() -> ApplicationService:
         runtime=runtime,
         session=session,
         tool_service=tool_service,
+        diagnostics_service=diagnostics_service,
 
     )
 
