@@ -17,6 +17,7 @@ import {
   MemoryClient,
 } from "./api/memory";
 
+import { createSettingsPanel } from "./settings";
 
 const client = new AirClient();
 const memoryClient = new MemoryClient();
@@ -31,6 +32,12 @@ if (!app) {
   );
 }
 
+const settingsPanel =
+  createSettingsPanel();
+
+app.appendChild(
+  settingsPanel,
+);
 
 app.innerHTML = `
   <main class="air-shell">

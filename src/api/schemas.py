@@ -72,3 +72,13 @@ class StreamChunk(BaseModel):
 
 class StreamDone(BaseModel):
     done: bool
+
+class SettingsResponse(BaseModel):
+    max_tokens: int
+
+
+class SettingsUpdateRequest(BaseModel):
+    max_tokens: int = Field(
+        ge=1,
+        le=8192,
+    )

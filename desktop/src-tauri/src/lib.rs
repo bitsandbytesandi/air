@@ -89,6 +89,15 @@ struct MemoryCreateRequest {
     content: String,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+struct SettingsResponse {
+    max_tokens: u32,
+}
+
+#[derive(Debug, Serialize)]
+struct SettingsUpdateRequest {
+    max_tokens: u32,
+}
 
 /*
  * Runtime
@@ -504,6 +513,100 @@ async fn air_delete_memory(
     Ok(())
 }
 
+#[tauri::command]
+async fn air_settings()
+    -> Result<SettingsResponse, String>
+{
+    let client = air_client()?;
+
+    let response = air_request(
+        client.get(
+            format!("{AIR_API_URL}/v1/settings")
+        ),
+    )
+    .send()
+    .await
+    .map_err(|error| {
+        format!(
+            "AIR settings request failed: {error}"
+        )
+    })?;
+
+    if !response.status().is_success() {
+        return Err(format!(
+            "AIR settings returned HTTP {}",
+            response.status()
+        ));
+    }
+
+    response
+        .json::<SettingsResponse>()
+        .await
+        .map_err(|error| {
+            format!(
+                "Invalid AIR settings response: {error}"
+            )
+        })
+}
+
+#[tauri::command]
+async fn air_update_settings(
+    max_tokens: u32,
+) -> Result<SettingsResponse, String> {
+    if !(1..=8192).contains(&max_tokens) {
+        return Err(
+            "AIR max_tokens must be between 1 and 8192."
+                .to_string()
+        );
+    }
+
+    let client = air_client()?;
+
+    let request = SettingsUpdateRequest {
+        max_tokens,
+    };
+
+    let response = air_request(
+        client
+            .put(
+                format!("{AIR_API_URL}/v1/settings")
+            )
+            .json(&request),
+    )
+    .send()
+    .await
+    .map_err(|error| {
+        format!(
+            "AIR settings update request failed: {error}"
+        )
+    })?;
+
+    if !response.status().is_success() {
+        let status = response.status();
+
+        let body = response
+            .text()
+            .await
+            .unwrap_or_else(|_| {
+                "Unable to read AIR settings error response."
+                    .to_string()
+            });
+
+        return Err(format!(
+            "AIR settings update returned HTTP {status}: {body}"
+        ));
+    }
+
+    response
+        .json::<SettingsResponse>()
+        .await
+        .map_err(|error| {
+            format!(
+                "Invalid AIR settings update response: {error}"
+            )
+        })
+}
+
 /*
  * Tauri application
  */
@@ -523,7 +626,9 @@ pub fn run() {
                 air_memories,
                 air_search_memories,
                 air_remember,
-                air_delete_memory
+                air_delete_memory,
+                air_settings,
+                air_update_settings
             ],
         )
         .run(

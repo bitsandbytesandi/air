@@ -24,6 +24,11 @@ from diagnostics.store import DiagnosticsStore
 from diagnostics.health_service import HealthService
 from diagnostics.health_store import HealthStore
 
+from settings.bootstrap import create_settings_service
+
+from events.service import ApplicationEventService
+from events.store import EventStore
+
 def create_application() -> ApplicationService:
     model, tokenizer = load_model()
 
@@ -33,6 +38,12 @@ def create_application() -> ApplicationService:
     )
 
     runtime = RuntimeConfig()
+
+    settings_service = create_settings_service(
+        runtime
+    )
+
+    settings_service.restore()
 
     session = Session.create()
 
@@ -88,6 +99,12 @@ def create_application() -> ApplicationService:
         health_store
     )
 
+    event_store = EventStore()
+
+    event_service = ApplicationEventService(
+        event_store
+    )
+
     context = ApplicationContext(
         chat_service=chat_service,
         memory_service=memory_service,
@@ -99,6 +116,8 @@ def create_application() -> ApplicationService:
         tool_service=tool_service,
         diagnostics_service=diagnostics_service,
         health_service=health_service,
+        settings_service=settings_service,
+        event_service=event_service,
     )
 
     return ApplicationService(

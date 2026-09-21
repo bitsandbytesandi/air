@@ -8,6 +8,8 @@ from memory.service import MemoryService
 from tools.service import ToolService
 from diagnostics.service import DiagnosticsService
 from diagnostics.health_service import HealthService
+from settings.service import SettingsService
+from events.service import ApplicationEventService
 
 @dataclass
 class ApplicationContext:
@@ -21,3 +23,5 @@ class ApplicationContext:
     model_manager: ModelManager
     runtime: RuntimeConfig
     session: Session
+    settings_service: SettingsService
+    event_service: ApplicationEventService

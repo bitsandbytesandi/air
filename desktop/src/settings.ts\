@@ -1,0 +1,139 @@
+import {
+  airSettings,
+  airUpdateSettings,
+} from "./api/ipc";
+
+export function createSettingsPanel(): HTMLElement {
+  const section =
+    document.createElement("section");
+
+  section.className = "settings-panel";
+
+  section.innerHTML = `
+    <div class="settings-panel-header">
+      <div>
+        <span class="panel-label">
+          SETTINGS
+        </span>
+
+        <h2>
+          AIR Configuration
+        </h2>
+
+        <p class="memory-description">
+          Configure AIR runtime behaviour.
+        </p>
+      </div>
+    </div>
+
+    <form
+      id="settings-form"
+      class="settings-form"
+    >
+      <label for="settings-max-tokens">
+        Max tokens
+      </label>
+
+      <input
+        id="settings-max-tokens"
+        type="number"
+        min="1"
+        max="8192"
+        value="512"
+        required
+      />
+
+      <span id="settings-status">
+        Loading settings...
+      </span>
+
+      <button
+        type="submit"
+        id="settings-save-button"
+      >
+        Save settings
+      </button>
+    </form>
+  `;
+
+  const form =
+    section.querySelector<HTMLFormElement>(
+      "#settings-form",
+    );
+
+  const input =
+    section.querySelector<HTMLInputElement>(
+      "#settings-max-tokens",
+    );
+
+  const status =
+    section.querySelector<HTMLSpanElement>(
+      "#settings-status",
+    );
+
+  if (!form || !input || !status) {
+    throw new Error(
+      "AIR settings interface could not be initialized.",
+    );
+  }
+
+  async function load(): Promise<void> {
+    try {
+      const settings = await airSettings();
+
+      input.value =
+        String(settings.max_tokens);
+
+      status.textContent =
+        "Settings loaded.";
+    } catch (error) {
+      status.textContent =
+        error instanceof Error
+          ? error.message
+          : "Failed to load settings.";
+    }
+  }
+
+  form.addEventListener(
+    "submit",
+    async (event) => {
+      event.preventDefault();
+
+      const maxTokens =
+        Number(input.value);
+
+      if (
+        !Number.isInteger(maxTokens)
+        || maxTokens < 1
+        || maxTokens > 8192
+      ) {
+        status.textContent =
+          "Max tokens must be between 1 and 8192.";
+
+        return;
+      }
+
+      try {
+        const settings =
+          await airUpdateSettings(
+            maxTokens,
+          );
+
+        input.value =
+          String(settings.max_tokens);
+
+        status.textContent =
+          "Settings saved.";
+      } catch (error) {
+        status.textContent =
+          error instanceof Error
+            ? error.message
+            : "Failed to save settings.";
+      }
+    },
+  );
+
+  void load();
+
+  return section;
+}

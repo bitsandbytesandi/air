@@ -20,6 +20,8 @@ from api.schemas import (
     ModelInfoResponse,
     RuntimeConfigResponse,
     RuntimeResponse,
+    SettingsResponse,
+    SettingsUpdateRequest,
 )
 
 from core.application import ApplicationService
@@ -147,6 +149,45 @@ def runtime(
         ),
     )
 
+@app.get(
+    "/v1/settings",
+    response_model=SettingsResponse,
+)
+def settings_get(
+    _: None = Depends(require_api_token),
+    service: ApplicationService = Depends(
+        get_application
+    ),
+):
+    settings = service.context.settings_service.current()
+
+    return SettingsResponse(
+        max_tokens=settings.max_tokens
+    )
+
+
+@app.put(
+    "/v1/settings",
+    response_model=SettingsResponse,
+)
+def settings_update(
+    request: SettingsUpdateRequest,
+    _: None = Depends(require_api_token),
+    service: ApplicationService = Depends(
+        get_application
+    ),
+):
+    from settings.models import Settings
+
+    settings = service.context.settings_service.update(
+        Settings(
+            max_tokens=request.max_tokens
+        )
+    )
+
+    return SettingsResponse(
+        max_tokens=settings.max_tokens
+    )
 
 @app.get(
     "/v1/conversation",

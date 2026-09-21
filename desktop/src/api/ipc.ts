@@ -140,3 +140,24 @@ export async function airDeleteMemory(
     },
   );
 }
+
+export interface SettingsResponse {
+  max_tokens: number;
+}
+
+export async function airSettings(): Promise<SettingsResponse> {
+  return invoke<SettingsResponse>(
+    "air_settings",
+  );
+}
+
+export async function airUpdateSettings(
+  maxTokens: number,
+): Promise<SettingsResponse> {
+  return invoke<SettingsResponse>(
+    "air_update_settings",
+    {
+      max_tokens: maxTokens,
+    },
+  );
+}
