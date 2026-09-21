@@ -23,6 +23,9 @@ from diagnostics.service import DiagnosticsService
 from diagnostics.store import DiagnosticsStore
 from diagnostics.health_service import HealthService
 from diagnostics.health_store import HealthStore
+from diagnostics.observability_service import ObservabilityService
+from diagnostics.observability_store import ObservabilityStore
+from diagnostics.event_observer import EventObserver
 
 from settings.bootstrap import create_settings_service
 
@@ -105,6 +108,20 @@ def create_application() -> ApplicationService:
         event_store
     )
 
+    observability_store = ObservabilityStore()
+
+    observability_service = ObservabilityService(
+        observability_store
+    )
+
+    event_observer = EventObserver(
+        observability_service
+    )
+
+    event_service.subscribe(
+        event_observer.handle
+    )
+
     context = ApplicationContext(
         chat_service=chat_service,
         memory_service=memory_service,
@@ -118,6 +135,7 @@ def create_application() -> ApplicationService:
         health_service=health_service,
         settings_service=settings_service,
         event_service=event_service,
+        observability_service=observability_service,
     )
 
     return ApplicationService(

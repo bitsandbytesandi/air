@@ -10,6 +10,8 @@ from diagnostics.service import DiagnosticsService
 from diagnostics.health_service import HealthService
 from settings.service import SettingsService
 from events.service import ApplicationEventService
+from diagnostics.observability_service import ObservabilityService
+
 
 @dataclass
 class ApplicationContext:
@@ -25,3 +27,5 @@ class ApplicationContext:
     session: Session
     settings_service: SettingsService
     event_service: ApplicationEventService
+    observability_service: ObservabilityService
+
