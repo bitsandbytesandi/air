@@ -27,3 +27,17 @@ export {
 export type {
   DesktopUIRuntime,
 } from "./runtime";
+
+export {
+  DesktopUIConnection,
+} from "./connection";
+
+export type {
+  IPCResponse,
+  IPCSuccess,
+  IPCFailure,
+} from "./ipc-types";
+
+export {
+  validateDesktopUIRuntime,
+} from "./integration";
