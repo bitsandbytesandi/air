@@ -32,6 +32,8 @@ from settings.bootstrap import create_settings_service
 from events.service import ApplicationEventService
 from events.store import EventStore
 
+from permissions.bootstrap import create_authorization_service
+
 def create_application() -> ApplicationService:
     model, tokenizer = load_model()
 
@@ -122,6 +124,8 @@ def create_application() -> ApplicationService:
         event_observer.handle
     )
 
+    authorization_service = create_authorization_service()
+
     context = ApplicationContext(
         chat_service=chat_service,
         memory_service=memory_service,
@@ -136,6 +140,8 @@ def create_application() -> ApplicationService:
         settings_service=settings_service,
         event_service=event_service,
         observability_service=observability_service,
+        authorization_service=authorization_service,
+
     )
 
     return ApplicationService(
