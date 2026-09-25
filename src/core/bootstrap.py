@@ -1,3 +1,6 @@
+from integration.boundary import AIRIntegration
+from integration.system import create_air_system
+
 from ai.model import MODEL_PATH, load_model
 from ai.model_manager import ModelManager
 from tools.bootstrap import create_tool_service
@@ -143,7 +146,14 @@ def create_application() -> ApplicationService:
         authorization_service=authorization_service,
 
     )
+    
+    air_system = create_air_system()
+
+    integration = AIRIntegration(
+        air_system
+    )
 
     return ApplicationService(
-        context
+        context=context,
+        integration=integration,
     )

@@ -4,14 +4,18 @@ from core.context import ApplicationContext
 from core.errors import ApplicationError, InvalidMessageError
 from core.results import ChatResult
 from core.state import ApplicationState
+from integration.boundary import AIRIntegration
 
 
 class ApplicationService:
+
     def __init__(
         self,
         context: ApplicationContext,
+        integration: AIRIntegration,
     ):
         self.context = context
+        self.integration = integration
         self._state = ApplicationState.CREATED
 
     @property
@@ -39,7 +43,7 @@ class ApplicationService:
         except Exception:
             self._state = ApplicationState.FAILED
             raise
-    
+
     def delete_memory(
         self,
         memory_id,
@@ -61,9 +65,7 @@ class ApplicationService:
             return
 
         self._state = ApplicationState.STOPPING
-
         self.context.session.close()
-
         self._state = ApplicationState.STOPPED
 
     def _validate_chat(
@@ -107,7 +109,7 @@ class ApplicationService:
         return ChatResult(
             content=response,
         )
-     
+
     def get_tool_service(self):
         return self.context.tool_service
 
@@ -148,7 +150,7 @@ class ApplicationService:
 
     def get_memories(self):
         return self.context.memory_service.get_all()
-   
+
     def search_memories(
         self,
         query: str,
@@ -162,7 +164,10 @@ class ApplicationService:
             query
         )
 
-    def remember(self, content: str):
+    def remember(
+        self,
+        content: str,
+    ):
         if self._state != ApplicationState.RUNNING:
             raise ApplicationError(
                 "Application is not running."
@@ -177,19 +182,6 @@ class ApplicationService:
 
         return self.context.memory_service.remember(
             content
-        )
-
-    def delete_memory(
-        self,
-        memory_id,
-    ) -> bool:
-        if self._state != ApplicationState.RUNNING:
-            raise ApplicationError(
-                "Application is not running."
-            )
-
-        return self.context.memory_service.delete(
-            memory_id
         )
 
     def restore(self) -> None:
