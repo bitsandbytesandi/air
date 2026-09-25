@@ -3,7 +3,6 @@ from typing import TypeVar
 
 from .system import AIRSystem
 
-
 T = TypeVar("T")
 
 
@@ -34,6 +33,17 @@ class AIRIntegration:
             operation,
             operation_name,
         )
+
+    def publish_runtime_event(
+        self,
+        event_type: str,
+        data: object | None = None,
+    ) -> None:
+        event = self._system.runtime.event_factory.create(
+            event_type,
+            data=data,
+        )
+        self._system.runtime.service.publish(event)
 
     @property
     def runtime(self):
